@@ -1,0 +1,41 @@
+using UnityEngine;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager Instance { get; private set; }
+
+    public int score = 0;
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject); // Avoid duplicate singletons
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject); // Optional: persists between scenes
+    }
+
+    public void AddScore(int amount)
+    {
+        score += amount;
+        Debug.Log("Score: " + score);
+    }
+}
+
+Player.cs
+
+using UnityEngine;
+
+public class Player : MonoBehaviour
+{
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space)) // Example: only add score on Space key
+        {
+            GameManager.Instance?.AddScore(10);
+        }
+    }
+}
