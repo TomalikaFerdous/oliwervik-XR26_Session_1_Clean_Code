@@ -1,113 +1,135 @@
 using UnityEngine;
-using TMPro;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    // Game state variables
-    public bool gameOver = false;
-    public float gameTime = 0f;
+    public static GameManager Instance { get; private set; }
 
-    // UI elements directly managed by GameManager (tight coupling)
-    [SerializeField]
-    private TextMeshProUGUI gameStatusText;
-    [SerializeField]
-    private TextMeshProUGUI timerText;
-    [SerializeField]
-    private GameObject gameOverPanel; 
+    public bool GameOver { get; private set; }
+    public float GameTime { get; private set; }
 
-    // Tightly coupled dependency to Player (violating Separation of Concerns)
-    [SerializeField]
-    private Player player;
-
-    void Start()
+    private void Awake()
     {
-        // Initialize UI
-        if (gameStatusText != null)
+        if (Instance != null && Instance != this)
         {
-            gameStatusText.text = "Game Started!";
+            Destroy(gameObject);
+            return;
         }
-        if (player == null)
-        {
-            player = FindFirstObjectByType<Player>();
-            if (player == null)
-            {
-                Debug.LogError("GameManager cannot find Player script!");
-            }
-        }
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-        }
-        Debug.Log("GameManager initialized.");
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
-    void Update()
+    private void Update()
     {
-        if (!gameOver)
-        {
-            gameTime += Time.deltaTime;
-            UpdateTimerUI();
+        if (GameOver) return;
 
-            // Handles input for restarting the game (monolithic and poor separation of concerns)
-            if (Input.GetKeyDown(KeyCode.R)) // R to Restart
-            {
-                RestartGame();
-            }
-            // Win condition (tightly coupled)
-            if (player.GetScore() >= 30) // Direct access to player score
-            {
-                WinGame();
-            }
+        GameTime += Time.deltaTime;
+
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            RestartGame();
         }
     }
 
-    private void UpdateTimerUI()
+    public void EndGame(bool win)
     {
-        if (timerText != null)
-        {
-            timerText.text = "Time: " + Mathf.FloorToInt(gameTime).ToString() + "s";
-        }
-    }
+        if (GameOver) return;
 
-    public void GameOver()
-    {
-        if (!gameOver)
+        GameOver = true;
+
+        if (win)
         {
-            gameOver = true;
+            Debug.Log("You Win!");
+            UIManager.Instance.ShowWin(GameTime);
+        }
+        else
+        {
             Debug.Log("Game Over!");
-            if (gameStatusText != null)
-            {
-                gameStatusText.text = "GAME OVER!";
-            }
-            if (gameOverPanel != null)
-            {
-                gameOverPanel.SetActive(true);
-            }
-
-            Invoke(nameof(RestartGame), 2f); // Restart after 2 seconds
+            UIManager.Instance.ShowGameOver(GameTime);
         }
-    }
 
-    public void WinGame()
-    {
-        if (!gameOver) // Ensure win can only happen once
-        {
-            gameOver = true;
-            Debug.Log("You Win! Score: " + player.GetScore()); // Direct access to player score
-            if (gameStatusText != null)
-            {
-                gameStatusText.text = "YOU WIN! Score: " + player.GetScore();
-            }
-
-            Invoke(nameof(RestartGame), 2f); // Restart after 2 seconds
-        }
+        Invoke(nameof(RestartGame), 2f);
     }
 
     public void RestartGame()
     {
         Debug.Log("Restarting Game...");
-        Time.timeScale = 1f; // Resume game
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Reload current scene
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+}
+
+UIManager.cs
+using UnityEngine;
+using TMPro;
+
+public class UIManager : MonoBehaviour
+{
+    public static UIManager Instance { get; private set; }
+
+    [SerializeField] private TextMeshProUGUI gameStatusText;
+    [SerializeField] private TextMeshProUGUI timerText;
+    [SerializeField] private GameObject gameOverPanel;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+    }
+
+    private void Update()
+    {
+        if (!GameManager.Instance.GameOver && timerText != null)
+        {
+            timerText.text = "Time: " + Mathf.FloorToInt(GameManager.Instance.GameTime) + "s";
+        }
+    }
+
+    public void ShowGameOver(float time)
+    {
+        if (gameStatusText != null)
+            gameStatusText.text = "GAME OVER!";
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(true);
+    }
+
+    public void ShowWin(float time)
+    {
+        if (gameStatusText != null)
+            gameStatusText.text = "YOU WIN!";
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(true);
+    }
+}
+
+Player.cs
+using UnityEngine;
+
+public class Player : MonoBehaviour
+{
+    private int score = 0;
+    public int Score => score;
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            AddScore(10);
+        }
+    }
+
+    public void AddScore(int amount)
+    {
+        score += amount;
+        Debug.Log("Score: " + score);
+
+        if (score >= 30)
+        {
+            GameManager.Instance.EndGame(win: true);
+        }
     }
 }
