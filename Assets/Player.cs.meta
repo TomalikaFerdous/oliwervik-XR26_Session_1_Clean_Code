@@ -1,2 +1,193 @@
 fileFormatVersion: 2
 guid: 1375a83566a729640a46e435afe8a244
+
+fileFormatVersion: 2
+guid: 1375a83566a729640a46e435afe8a244
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+
+Main Control
+using UnityEngine;
+
+[RequireComponent(typeof(PlayerMovement))]
+[RequireComponent(typeof(PlayerStats))]
+[RequireComponent(typeof(PlayerCollisionHandler))]
+[RequireComponent(typeof(PlayerUI))]
+public class Player : MonoBehaviour
+{
+    private PlayerMovement movement;
+    private PlayerStats stats;
+
+    void Awake()
+    {
+        movement = GetComponent<PlayerMovement>();
+        stats = GetComponent<PlayerStats>();
+    }
+
+    void Update()
+    {
+        // Handle input for movement/jumping
+        movement.HandleInput();
+
+        // Game over check
+        if (stats.Health <= 0)
+        {
+            Debug.Log("Player defeated!");
+            FindFirstObjectByType<GameManager>()?.GameOver();
+        }
+    }
+}
+using UnityEngine;
+
+[RequireComponent(typeof(Rigidbody))]
+public class PlayerMovement : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float jumpForce = 10f;
+    [SerializeField] private float rotationSpeed = 0.5f;
+
+    private Rigidbody rb;
+    private bool isGrounded;
+    private float yaw;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+        rb.freezeRotation = true;
+        Cursor.lockState = CursorLockMode.Locked;
+    }
+
+    public void HandleInput()
+    {
+        Rotate();
+
+        if (Input.GetButtonDown("Jump") && isGrounded)
+        {
+            Jump();
+        }
+    }
+
+    private void Rotate()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * rotationSpeed;
+        yaw += mouseX;
+        transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+    }
+
+    private void Jump()
+    {
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        isGrounded = false;
+    }
+
+    void FixedUpdate()
+    {
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+
+        Vector3 direction = transform.forward * v + transform.right * h;
+        Vector3 velocity = direction.normalized * moveSpeed;
+
+        rb.MovePosition(rb.position + velocity * Time.fixedDeltaTime);
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+            isGrounded = true;
+    }
+}
+using UnityEngine;
+
+public class PlayerStats : MonoBehaviour
+{
+    public float MaxHealth { get; private set; } = 30f;
+    public float Health { get; private set; }
+    public int Score { get; private set; }
+
+    public delegate void StatsChanged();
+    public event StatsChanged OnStatsChanged;
+
+    void Awake()
+    {
+        Health = MaxHealth;
+        Score = 0;
+    }
+
+    public void TakeDamage(float amount)
+    {
+        Health = Mathf.Max(Health - amount, 0);
+        OnStatsChanged?.Invoke();
+    }
+
+    public void AddScore(int points)
+    {
+        Score += points;
+        OnStatsChanged?.Invoke();
+    }
+}
+using UnityEngine;
+
+public class PlayerStats : MonoBehaviour
+{
+    public float MaxHealth { get; private set; } = 30f;
+    public float Health { get; private set; }
+    public int Score { get; private set; }
+
+    public delegate void StatsChanged();
+    public event StatsChanged OnStatsChanged;
+
+    void Awake()
+    {
+        Health = MaxHealth;
+        Score = 0;
+    }
+
+    public void TakeDamage(float amount)
+    {
+        Health = Mathf.Max(Health - amount, 0);
+        OnStatsChanged?.Invoke();
+    }
+
+    public void AddScore(int points)
+    {
+        Score += points;
+        OnStatsChanged?.Invoke();
+    }
+}
+using UnityEngine;
+
+public class PlayerStats : MonoBehaviour
+{
+    public float MaxHealth { get; private set; } = 30f;
+    public float Health { get; private set; }
+    public int Score { get; private set; }
+
+    public delegate void StatsChanged();
+    public event StatsChanged OnStatsChanged;
+
+    void Awake()
+    {
+        Health = MaxHealth;
+        Score = 0;
+    }
+
+    public void TakeDamage(float amount)
+    {
+        Health = Mathf.Max(Health - amount, 0);
+        OnStatsChanged?.Invoke();
+    }
+
+    public void AddScore(int points)
+    {
+        Score += points;
+        OnStatsChanged?.Invoke();
+    }
+}
